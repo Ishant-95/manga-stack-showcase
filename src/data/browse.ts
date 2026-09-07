@@ -16,21 +16,16 @@ export const COVER_CLASSES: CoverClass[] = [
   "cover-ink",
 ];
 
-export type BrowseEntry = {
-  value: string;
-  count: number;
-  /** Sample titles filed under this entry, shown on the fanned-out sheets. */
-  titles: [string, string, string];
-};
+export type { BrowseCategory, BrowseEntry } from "@/lib/manga-manager";
+import type { BrowseCategory } from "@/lib/manga-manager";
 
-export type BrowseCategory = {
-  key: string;
-  label: string;
-  blurb: string;
-  entries: BrowseEntry[];
-};
-
-export const CATEGORIES: BrowseCategory[] = [
+/**
+ * Counts snapshot in the original module's browse shape (category ->
+ * value/count pairs, exactly what web.py `_field_counts` produces). Used when
+ * no live Manga Manager instance is configured — see
+ * docs/manga-manager-integration.md.
+ */
+export const SAMPLE_CATEGORIES: BrowseCategory[] = [
   {
     key: "tags",
     label: "Tags",
