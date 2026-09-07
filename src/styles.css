@@ -519,22 +519,11 @@
   transition: transform 0.42s cubic-bezier(0.3, 0.85, 0.3, 1), opacity 0.32s ease;
 }
 /* Untie: knot unfolds flat, band straightens and drops a shadow */
-.drawer-item[data-open="true"] .drawer-strap { transform: translateY(14px); top: 51%; }
-.drawer-item[data-open="true"] .drawer-strap__band::before,
-.drawer-strap__band::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 5px;
-  border-radius: 2px;
-  background: color-mix(in oklab, var(--folder-stripe) 72%, black);
-  box-shadow: 0 1px 2px var(--folder-stripe-shadow);
+.drawer-item[data-open="true"] .drawer-strap {
+  transform: translateY(14px);
+  top: 51%;
 }
-.drawer-strap__band::before { left: -3px; }
-.drawer-strap__band::after { right: -3px; }
-
-.drawer-strap__knot {
+.drawer-item[data-open="true"] .drawer-strap__knot {
   transform: rotate(0deg) scale(1.5, 0.22);
   opacity: 0;
 }
