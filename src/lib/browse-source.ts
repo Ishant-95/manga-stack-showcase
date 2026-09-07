@@ -66,7 +66,7 @@ export function httpSource(baseUrl: string, token?: string): BrowseSource {
     },
     load: async (sort) => {
       const response = await fetch(endpoint, {
-        headers: token ? { "X-API-Token": token } : undefined,
+        headers: token ? { "X-API-Token": token } : {},
         credentials: "omit",
       });
       if (!response.ok) {
