@@ -641,21 +641,7 @@
   .drawer-sheet,
   .drawer-strap,
   .drawer-strap__band,
-  .drawer-strap__band::before,
-.drawer-strap__band::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 5px;
-  border-radius: 2px;
-  background: color-mix(in oklab, var(--folder-stripe) 72%, black);
-  box-shadow: 0 1px 2px var(--folder-stripe-shadow);
-}
-.drawer-strap__band::before { left: -3px; }
-.drawer-strap__band::after { right: -3px; }
-
-.drawer-strap__knot {
+  .drawer-strap__knot {
     transition-duration: 0.01ms !important;
   }
 }
