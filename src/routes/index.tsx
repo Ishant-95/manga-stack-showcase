@@ -131,8 +131,8 @@ function BrowsePage() {
         </div>
 
         <p className="drawer-hint">
-          Move your cursor up over a drawer to pull the sheets out one at a time — on touch,
-          tap to leaf through.
+          Move your cursor across a drawer to leaf through its cards — each slides out of the
+          shelf in turn. On touch, tap to step through.
         </p>
 
         {entries.length === 0 ? (

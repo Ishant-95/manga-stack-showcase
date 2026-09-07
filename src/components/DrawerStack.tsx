@@ -3,16 +3,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { COVER_CLASSES, type BrowseEntry } from "@/data/browse";
 
 /**
- * Physical drawer / file-folder card stack.
+ * Physical drawer / card stack.
  *
- * Four sheets live inside a shallow drawer. The pointer's vertical position
- * inside the item picks which sheet is "active" — moving upward pulls deeper
- * sheets out one at a time while the previous one settles back. Zones use
- * hysteresis so tiny movements near a boundary don't flicker.
+ * When the pointer enters, the drawer slides outward and the cards sit stacked
+ * one behind another inside the shelf. The drawer's width is split into as many
+ * horizontal zones as there are cards — moving across the zones selects a card.
+ * The selected card slides up out of the shelf (staying within its border) while
+ * every card in front of it fades to transparent so the chosen one is the only
+ * cover you see. Nothing pops out above the shelf. Zones use hysteresis so a
+ * pointer resting near a boundary doesn't flicker.
  */
 
-const ZONES = 4; // sheets: 0 = front cover, 3 = blurred backing sheet
-const HYSTERESIS = 0.05;
+const SHEETS = 4; // front cover + 3 sample titles
+const HYSTERESIS = 0.06;
 
 type Props = {
   entry: BrowseEntry;
@@ -27,7 +30,7 @@ export function DrawerStack({ entry, index }: Props) {
   const isTouch = useRef(false);
 
   const setZone = useCallback((next: number) => {
-    const clamped = Math.min(ZONES - 1, Math.max(0, next));
+    const clamped = Math.min(SHEETS - 1, Math.max(0, next));
     activeRef.current = clamped;
     setActive(clamped);
   }, []);
@@ -36,9 +39,8 @@ export function DrawerStack({ entry, index }: Props) {
     (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "touch" || isTouch.current) return;
       const rect = event.currentTarget.getBoundingClientRect();
-      // 0 at the bottom of the drawer, 1 at the top of the stack.
-      const fromBottom = 1 - (event.clientY - rect.top) / rect.height;
-      const raw = fromBottom * ZONES;
+      // Split the drawer's width into one zone per card.
+      const raw = ((event.clientX - rect.left) / rect.width) * SHEETS;
       const current = activeRef.current;
       // Hysteresis: only cross a boundary once the pointer clears it a little.
       let next = Math.floor(raw);
@@ -56,11 +58,11 @@ export function DrawerStack({ entry, index }: Props) {
   }, [setZone]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowUp") {
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
       event.preventDefault();
       setOpen(true);
       setZone(activeRef.current + 1);
-    } else if (event.key === "ArrowDown") {
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
       event.preventDefault();
       const next = activeRef.current - 1;
       if (next < 0) close();
@@ -70,14 +72,14 @@ export function DrawerStack({ entry, index }: Props) {
     }
   };
 
-  // Touch: tap cycles through the sheets, tap outside closes the drawer.
+  // Touch: tap cycles through the cards, tap outside closes the drawer.
   const handleTouchTap = () => {
     isTouch.current = true;
     const next = activeRef.current + 1;
     if (!open) {
       setOpen(true);
-      setZone(1);
-    } else if (next >= ZONES) {
+      setZone(0);
+    } else if (next >= SHEETS) {
       close();
     } else {
       setZone(next);
@@ -106,7 +108,7 @@ export function DrawerStack({ entry, index }: Props) {
         className="drawer-hit"
         role="button"
         tabIndex={0}
-        aria-label={`${entry.value}, ${entry.count} titles. Use arrow up and down to leaf through the stack.`}
+        aria-label={`${entry.value}, ${entry.count} titles. Move across the drawer or use arrow keys to leaf through the cards.`}
         onPointerMove={handlePointerMove}
         onPointerLeave={(event) => {
           if (event.pointerType === "touch") return;
@@ -123,38 +125,43 @@ export function DrawerStack({ entry, index }: Props) {
         }}
       >
         <div className="drawer-stage">
-          <div className="drawer-well" aria-hidden="true" />
+          {/* The shelf box the cards live in. */}
+          <div className="shelf-frame" aria-hidden="true" />
 
           {sheets.map((depth) => {
-            const isBlank = depth === ZONES - 1;
+            const isBlank = depth === SHEETS - 1;
             const cover = COVER_CLASSES[(index + depth * 2) % COVER_CLASSES.length]!;
+            // Front cards (lower depth) sit above the active one; fade them out.
+            const state = !open
+              ? "stored"
+              : depth === active
+                ? "selected"
+                : depth < active
+                  ? "front"
+                  : "behind";
             return (
               <div
                 key={depth}
-                className={`drawer-sheet ${isBlank ? "drawer-sheet--blank cover-peacock" : cover}`}
-                data-depth={depth}
-                data-state={active === depth ? "active" : "stored"}
+                className={`shelf-card ${isBlank ? "shelf-card--blank cover-peacock" : cover}`}
+                data-index={depth}
+                data-state={state}
                 aria-hidden="true"
               >
-                <span className="drawer-sheet__spine" />
+                <span className="shelf-card__spine" />
                 {isBlank ? (
-                  <span className="drawer-sheet__blank-note">+{entry.count - 3} more</span>
+                  <span className="shelf-card__blank-note">+{entry.count - 3} more</span>
                 ) : depth === 0 ? (
-                  <span className="drawer-sheet__letter">{entry.value.charAt(0).toUpperCase()}</span>
+                  <span className="shelf-card__letter">{entry.value.charAt(0).toUpperCase()}</span>
                 ) : (
-                  <span className="drawer-sheet__title">{entry.titles[depth]}</span>
+                  <span className="shelf-card__title">{entry.titles[depth]}</span>
                 )}
               </div>
             );
           })}
 
-          <div className="drawer-strap" aria-hidden="true">
-            <span className="drawer-strap__band" />
-            <span className="drawer-strap__knot" />
-          </div>
-
-          <div className="drawer-body" aria-hidden="true">
-            <span className="drawer-lip" />
+          {/* Drawer front that slides outward when the shelf opens. */}
+          <div className="drawer-front" aria-hidden="true">
+            <span className="drawer-front__face" />
             <span className="drawer-peg drawer-peg--left" />
             <span className="drawer-peg drawer-peg--right" />
           </div>
