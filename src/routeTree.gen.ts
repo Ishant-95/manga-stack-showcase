@@ -10,43 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ThemeRouteImport } from './routes/theme'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ThemeRoute = ThemeRouteImport.update({
-  id: '/theme',
-  path: '/theme',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/theme': typeof ThemeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/theme': typeof ThemeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/theme': typeof ThemeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/theme'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/theme'
-  id: '__root__' | '/' | '/theme'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ThemeRoute: typeof ThemeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,19 +48,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/theme': {
-      id: '/theme'
-      path: '/theme'
-      fullPath: '/theme'
-      preLoaderRoute: typeof ThemeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ThemeRoute: ThemeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { COVER_CLASSES } from "@/data/browse";
-import type { BrowseEntry } from "@/lib/manga-manager";
+import { COVER_CLASSES, type BrowseEntry } from "@/data/browse";
 
 /**
  * Physical drawer / file-folder card stack.
@@ -10,12 +9,6 @@ import type { BrowseEntry } from "@/lib/manga-manager";
  * inside the item picks which sheet is "active" — moving upward pulls deeper
  * sheets out one at a time while the previous one settles back. Zones use
  * hysteresis so tiny movements near a boundary don't flicker.
- *
- * Interaction parity:
- *  - mouse/pen: vertical position drives the stack, leaving closes it
- *  - touch: tap cycles sheets, tapping outside closes
- *  - keyboard: Arrow Up/Down leaf through, Home/End jump, Escape closes
- *  - reduced motion: sheets snap instead of sliding (handled in CSS)
  */
 
 const ZONES = 4; // sheets: 0 = front cover, 3 = blurred backing sheet
@@ -30,9 +23,8 @@ export function DrawerStack({ entry, index }: Props) {
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
   const activeRef = useRef(0);
-  const rootRef = useRef<HTMLLIElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const isTouch = useRef(false);
-  const descriptionId = useId();
 
   const setZone = useCallback((next: number) => {
     const clamped = Math.min(ZONES - 1, Math.max(0, next));
@@ -41,7 +33,7 @@ export function DrawerStack({ entry, index }: Props) {
   }, []);
 
   const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
+    (event: React.PointerEvent<HTMLDivElement>) => {
       if (event.pointerType === "touch" || isTouch.current) return;
       const rect = event.currentTarget.getBoundingClientRect();
       // 0 at the bottom of the drawer, 1 at the top of the stack.
@@ -63,45 +55,18 @@ export function DrawerStack({ entry, index }: Props) {
     setZone(0);
   }, [setZone]);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    switch (event.key) {
-      case "ArrowUp":
-      case "ArrowRight":
-        event.preventDefault();
-        setOpen(true);
-        setZone(activeRef.current + 1);
-        break;
-      case "ArrowDown":
-      case "ArrowLeft": {
-        event.preventDefault();
-        const next = activeRef.current - 1;
-        if (next < 0) close();
-        else setZone(next);
-        break;
-      }
-      case "Home":
-        event.preventDefault();
-        setZone(0);
-        break;
-      case "End":
-        event.preventDefault();
-        setOpen(true);
-        setZone(ZONES - 1);
-        break;
-      case "Escape":
-        close();
-        break;
-      case "Enter":
-      case " ":
-        event.preventDefault();
-        if (open && activeRef.current >= ZONES - 1) close();
-        else {
-          setOpen(true);
-          setZone(activeRef.current + 1);
-        }
-        break;
-      default:
-        break;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setOpen(true);
+      setZone(activeRef.current + 1);
+    } else if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = activeRef.current - 1;
+      if (next < 0) close();
+      else setZone(next);
+    } else if (event.key === "Escape") {
+      close();
     }
   };
 
@@ -129,22 +94,19 @@ export function DrawerStack({ entry, index }: Props) {
   }, [open, close]);
 
   const sheets = [0, 1, 2, 3];
-  const sheetLabel = (depth: number) =>
-    depth === ZONES - 1 ? `${Math.max(entry.count - 3, 0)} more titles` : (entry.titles[depth] ?? entry.value);
 
   return (
-    <li
+    <div
       ref={rootRef}
       className="drawer-item"
       data-open={open ? "true" : "false"}
       data-active={active}
     >
-      <button
-        type="button"
+      <div
         className="drawer-hit"
-        aria-expanded={open}
-        aria-describedby={descriptionId}
-        aria-label={`${entry.value}, ${entry.count} ${entry.count === 1 ? "title" : "titles"}`}
+        role="button"
+        tabIndex={0}
+        aria-label={`${entry.value}, ${entry.count} titles. Use arrow up and down to leaf through the stack.`}
         onPointerMove={handlePointerMove}
         onPointerLeave={(event) => {
           if (event.pointerType === "touch") return;
@@ -160,14 +122,14 @@ export function DrawerStack({ entry, index }: Props) {
           handleTouchTap();
         }}
       >
-        <span className="drawer-stage">
-          <span className="drawer-well" aria-hidden="true" />
+        <div className="drawer-stage">
+          <div className="drawer-well" aria-hidden="true" />
 
           {sheets.map((depth) => {
             const isBlank = depth === ZONES - 1;
             const cover = COVER_CLASSES[(index + depth * 2) % COVER_CLASSES.length]!;
             return (
-              <span
+              <div
                 key={depth}
                 className={`drawer-sheet ${isBlank ? "drawer-sheet--blank cover-peacock" : cover}`}
                 data-depth={depth}
@@ -176,42 +138,35 @@ export function DrawerStack({ entry, index }: Props) {
               >
                 <span className="drawer-sheet__spine" />
                 {isBlank ? (
-                  <span className="drawer-sheet__blank-note">+{Math.max(entry.count - 3, 0)} more</span>
+                  <span className="drawer-sheet__blank-note">+{entry.count - 3} more</span>
                 ) : depth === 0 ? (
                   <span className="drawer-sheet__letter">{entry.value.charAt(0).toUpperCase()}</span>
                 ) : (
                   <span className="drawer-sheet__title">{entry.titles[depth]}</span>
                 )}
-              </span>
+              </div>
             );
           })}
 
-          <span className="drawer-strap" aria-hidden="true">
+          <div className="drawer-strap" aria-hidden="true">
             <span className="drawer-strap__band" />
             <span className="drawer-strap__knot" />
-          </span>
+          </div>
 
-          <span className="drawer-body" aria-hidden="true">
+          <div className="drawer-body" aria-hidden="true">
             <span className="drawer-lip" />
             <span className="drawer-peg drawer-peg--left" />
             <span className="drawer-peg drawer-peg--right" />
-          </span>
-        </span>
+          </div>
+        </div>
 
-        <span className="drawer-meta">
-          <span className="drawer-name">{entry.value}</span>
+        <div className="drawer-meta">
+          <h3>{entry.value}</h3>
           <span className="drawer-tag">
             {entry.count} {entry.count === 1 ? "title" : "titles"}
           </span>
-        </span>
-
-        <span id={descriptionId} className="sr-only">
-          Arrow up and down leaf through {ZONES} sheets. Escape closes the drawer.
-        </span>
-        <span className="sr-only" aria-live="polite">
-          {open ? `Sheet ${active + 1} of ${ZONES}: ${sheetLabel(active)}` : ""}
-        </span>
-      </button>
-    </li>
+        </div>
+      </div>
+    </div>
   );
 }
